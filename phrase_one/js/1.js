@@ -9,7 +9,7 @@ var worldmap = new Array(grid[0]*grid[1]).fill(0);
 const arrSum = arr => arr.reduce((a,b) => a + b, 0)
 var fps = 5;
 var mutationrate = 0;
-var nnsize = [102,10,5];
+var nnsize = [10,5];
 var learningrate = 0.05;
 
 
@@ -230,8 +230,8 @@ function worldrun2() {
 
 //Nerual Network
 function neuron() {
-  this.init = function(input) {
-    this.w = Math.random()*2-1;
+  this.init = function(numofconnection,input) {
+    this.w = Array(numofconnection).fill(Math.random()*2-1);
     this.b = Math.random()*2-1;
     this.activation = 'sigmoid';
     this.input = input;
@@ -244,7 +244,10 @@ function neuron() {
   }
   this.fp = function() {
     this.output = 0
-    this.output += this.w * arrSum(this.input) + this.b;
+    for (e=0;e<this.w.length;e++) {
+        this.output += this.w[e] * this.input
+    }
+    this.output += this.b;
     this.activate(this.activation);
   }
 }
@@ -257,7 +260,7 @@ function layer() {
     this.outputlayer;
     for (i=0;i<this.numofneuron;i++) {
       this.neuron.push(new neuron())
-      this.neuron[this.neuron.length-1].init(inputlayer);
+      this.neuron[this.neuron.length-1].init(inputlayer.length,inputlayer);
     }
   }
   this.fp = function() {
@@ -273,13 +276,14 @@ function network() {
   this.init = function(dimension) {
     this.dimension = dimension;
     this.layer = [];
-    this.inputdata;
+    this.inputdata = Array(102).fill(0);
     this.output;
     this.reward = 0;
     this.totalreward = 0;
+    this.layer[0] = this.inputdata;
     for (i2=0;i2<(this.dimension.length);i2+=1) {
       this.layer.push(new layer())
-      this.layer[this.layer.length-1].init([1],this.dimension[i2]);
+      this.layer[this.layer.length-1].init(this.layer[this.layer.length-2],this.dimension[i2]);
     }
   }
   this.loaddata = function(data) {
@@ -300,10 +304,10 @@ function network() {
       randomlayerid = Math.floor(Math.random() * brain.dimension.length);
       for (eachneuron=0;eachneuron<Math.floor(brain.layer[randomlayerid].numofneuron*(1-mutationrate));eachneuron++) {
         randomneuronid = Math.floor(Math.random() * brain.layer[randomlayerid].numofneuron);
-        random = new bot();
-        random.init();
-        this.layer[randomlayerid].neuron[randomneuronid].w = random.brain.layer[randomlayerid].neuron[randomneuronid].w;
-        this.layer[randomlayerid].neuron[randomneuronid].b = random.brain.layer[randomlayerid].neuron[randomneuronid].b;
+        for (w1=0;w1<Math.floor(this.layer[randomlayerid].neuron[randomneuronid].w.length/2);w1++) {
+            this.layer[randomlayerid].neuron[randomneuronid].w[w1] = random.brain.layer[randomlayerid].neuron[randomneuronid].w[w1];
+            this.layer[randomlayerid].neuron[randomneuronid].b = random.brain.layer[randomlayerid].neuron[randomneuronid].b;   
+        }
       }
     }
   this.loadbrain3 = function() {
@@ -319,15 +323,17 @@ function network() {
     eachlayer,eachneuron=0;
   }
   this.fp = function() {
-    for (i3=0;i3<this.layer.length;i3++) {
+    for (i3=1;i3<this.layer.length;i3++) {
       this.layer[i3].fp();
     }
     this.output = this.layer[this.layer.length-1].outputlayer;
   }
   this.learn = function(rate) {
-    for (l=0;l<this.dimension.length;l++) {
+    for (l=this.dimension.length;l>1;l--) {
       for (n=0;n<this.layer[l].numofneuron;n++) {
-        this.layer[l].neuron[n].w += rate * this.reward;
+        for (w2=0;w2<this.layer[l].neuron[n].w.length;w++) {
+            this.layer[l].neuron[n].w[w2] += rate * this.layer[l+1].neuron[];
+        }
         this.layer[l].neuron[n].b += rate * this.reward;
       }
     }
