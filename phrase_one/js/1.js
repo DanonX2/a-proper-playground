@@ -8,6 +8,7 @@ var gencounter = 0;
 var worldmap = new Array(grid[0]*grid[1]).fill(0);
 const arrSum = arr => arr.reduce((a,b) => a + b, 0)
 var fps = 5;
+var mutationrate = 0;
 
 
 function setup() {
@@ -70,7 +71,7 @@ function draw() {
   for (i0 in bots) {
     bots[i0].move();
     bots[i0].show();
-    bots[i0].brain.learn(0.001);
+    bots[i0].brain.learn(0.01);
   }
 
   infoupdate(); //updates info board
@@ -100,7 +101,7 @@ function bot() {
     this.botinput.push(this.x);
     this.botinput.push(this.y);
     this.brain = new network()
-    this.brain.init([10,3,5])
+    this.brain.init([5])
   }
   this.show = function() {
     fill('black')
@@ -175,7 +176,8 @@ function add10bot() {
 function addIbot() {
   bots.push(new bot());
   bots[bots.length-1].init();
-  bots[bots.length-1].brain.loadbrain(generation[Math.floor(Math.random() * generation.length)].brain);
+  bots[bots.length-1].brain.loadbrain1(generation[Math.floor(Math.random() * generation.length)].brain);
+  bots[bots.length-1].brain.loadbrain2(generation[Math.floor(Math.random() * generation.length)].brain);
 }
 
 function add10Ibot() {
@@ -191,8 +193,8 @@ function worldrun1() {
       if (bots[b].x == foods[f].x && bots[b].y == foods[f].y) {
         foods.splice(f, 1);
         bots[b].hunger += 50;
-        bots[b].brain.reward = 1000;
-        bots[b].brain.totalreward += 1000;
+        bots[b].brain.reward = 10;
+        bots[b].brain.totalreward += 10;
       }}
     if (bots[b].hunger <= 0) {
       generation.push(bots[b]);
@@ -280,13 +282,25 @@ function network() {
   this.loaddata = function(data) {
     this.inputdata = data;
   }
-  this.loadbrain = function(brain) {
+
+  this.loadbrain1 = function(brain) {
     for (eachlayer=0;eachlayer<brain.dimension.length;eachlayer++) {
       for (eachneuron=0;eachneuron<brain.layer[eachlayer].numofneuron;eachneuron++) {
         this.layer[eachlayer].neuron[eachneuron].w = brain.layer[eachlayer].neuron[eachneuron].w;
         this.layer[eachlayer].neuron[eachneuron].b = brain.layer[eachlayer].neuron[eachneuron].b;
       }
     }
+
+  this.loadbrain2 = function(brain) {
+    for (eachlayer=0;eachlayer<Math.floor(brain.dimension.length*(1-mutationrate));eachlayer++) {
+      randomlayerid = Math.floor(Math.random() * brain.dimension.length);
+      for (eachneuron=0;eachneuron<Math.floor(brain.layer[randomlayerid].numofneuron*(1-mutationrate));eachneuron++) {
+        randomneuronid = Math.floor(Math.random() * brain.layer[randomlayerid].numofneuron)
+        this.layer[randomlayerid].neuron[randomneuronid].w = brain.layer[randomlayerid].neuron[randomneuronid].w;
+        this.layer[randomlayerid].neuron[randomneuronid].b = brain.layer[randomlayerid].neuron[randomneuronid].b;
+      }
+    }
+    eachlayer,eachneuron=0;
   }
   this.fp = function() {
     for (i3=0;i3<this.layer.length;i3++) {
@@ -303,6 +317,7 @@ function network() {
     }
   }
   }
+}
 
 //Neural Network Ends
 
@@ -344,10 +359,10 @@ function nextGen(){
 
 function nextAutoGen() {
   for (i00=0;i00<1;i00++) {
+    nextGen();
     add10Ibot();
     add10Ibot();
     addbot();
-    nextGen();
   }
 }
 
