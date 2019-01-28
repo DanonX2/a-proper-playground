@@ -328,6 +328,9 @@ function network() {
     }
     this.output = this.layer[this.layer.length-1].outputlayer;
   }
+  this.get_gradient = function(location) {
+    
+  }
   this.learn = function(rate) {
     // for (l=this.dimension.length;l>1;l--) {
     //   for (n=0;n<this.layer[l].numofneuron;n++) {
