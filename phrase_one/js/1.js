@@ -245,7 +245,7 @@ function neuron() {
   this.fp = function() {
     this.output = 0
     for (e=0;e<this.w.length;e++) {
-        this.output += this.w[e] * this.input
+        this.output += this.w[e] * this.input[e];
     }
     this.output += this.b;
     this.activate(this.activation);
@@ -329,14 +329,14 @@ function network() {
     this.output = this.layer[this.layer.length-1].outputlayer;
   }
   this.learn = function(rate) {
-    for (l=this.dimension.length;l>1;l--) {
-      for (n=0;n<this.layer[l].numofneuron;n++) {
-        for (w2=0;w2<this.layer[l].neuron[n].w.length;w++) {
-            this.layer[l].neuron[n].w[w2] += rate * this.layer[l+1].neuron[];
-        }
-        this.layer[l].neuron[n].b += rate * this.reward;
-      }
-    }
+    // for (l=this.dimension.length;l>1;l--) {
+    //   for (n=0;n<this.layer[l].numofneuron;n++) {
+    //     for (w2=0;w2<this.layer[l].neuron[n].w.length;w++) {
+    //         this.layer[l].neuron[n].w[w2] += rate * this.layer[l+1].neuron[n];
+    //     }
+    //     this.layer[l].neuron[n].b += rate * this.reward;
+    //   }
+    // }
   }
 }
 
