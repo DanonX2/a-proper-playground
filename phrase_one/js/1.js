@@ -355,10 +355,18 @@ function network() {
 
   this.get_layer_gradient_map = function() {
     this.gradient_map = Array(this.layer.length-2);
-    for (l1=0;l1<this.layer.length-2;l1++) {
+    for (l1=1;l1<this.layer.length-1;l1++) {
       for (n1=0;n1<this.layer[l1].neuron.length;n1++) {
-        
-        this.layer[l1+1].neuron[n1].gradient = 
+        this.layer[l1].neuron[n1].gradient = Array(this.layer[this.layer.length-1].length);
+        this.get_local_gradient([l1,n1]);
+        //w
+        for (w4=0;w4<this.layer[l1].neuron[n1].w.length;w4++) {
+          this.layer[l1].neuron[n1].gradient = this.layer[l1].neuron[n1].dadw
+        }
+
+        //b
+
+
       }
     }
 
