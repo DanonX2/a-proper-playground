@@ -332,7 +332,7 @@ function network() {
     for (l=this.dimension.length;l>1;l--) {
       for (n=0;n<this.layer[l].numofneuron;n++) {
         for (w2=0;w2<this.layer[l].neuron[n].w.length;w++) {
-            this.layer[l].neuron[n].w[w2] += rate * this.layer[l+1].neuron[];
+            //this.layer[l].neuron[n].w[w2] += rate * this.layer[l+1].neuron[];
         }
         this.layer[l].neuron[n].b += rate * this.reward;
       }
