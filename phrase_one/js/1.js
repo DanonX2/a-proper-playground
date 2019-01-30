@@ -239,7 +239,7 @@ function neuron() {
   }
   this.activate = function(activation) {
     if (activation == 'sigmoid') {
-      this.output = 1 / (1 + Math.E ** -this.output);
+      this.output = sigmoid(this.output);
     }
   }
   this.fp = function() {
@@ -328,6 +328,42 @@ function network() {
     }
     this.output = this.layer[this.layer.length-1].outputlayer;
   }
+
+//get gradient prep
+
+  //get da/dw & da/db
+  this.get_local_gradient = function (location) {
+    this.layer[location[0]].neuron[location[1]].dadw = Array(this.layer[location[0]].neuron[location[1]].w.length).fill(0);
+    this.layer[location[0]].neuron[location[1]].dadb = [0];
+    this.layer[location[0]].neuron[location[1]].fp();
+    for (w2=0;w2<this.layer[location[0]].neuron[location[1]].w.length;w2++) {
+      this.layer[location[0]].neuron[location[1]].dadw[w2] = sigmoid(this.layer[location[0]].neuron[location[1]].output)
+      *(1-sigmoid(this.layer[location[0]].neuron[location[1]].output))*this.layer[location[0]].neuron[location[1]].input[w2];
+    }
+    this.layer[location[0]].neuron[location[1]].dadb = sigmoid(this.layer[location[0]].neuron[location[1]].output)
+    *(1-sigmoid(this.layer[location[0]].neuron[location[1]].output));
+    delete w2;
+  }
+
+  this.get_layer_gradient = function(location) {
+    this.layer[location[0]].neuron[location[1]].dldw = Array(this.layer[location[0]+1].neuron.length).fill(0);
+    for (w3=0;w3<this.layer[location[0]+1].neuron.length;w3++) {
+      this.layer[location[0]].neuron[location[1]].dldw[w3] = sigmoid(this.layer[location[0]+1].neuron[w3].output)
+      *(1-sigmoid(this.layer[location[0]+1].neuron[location[w3]]))*this.layer[location[0]+1].neuron[location[1]];
+    }
+  }
+
+  this.get_layer_gradient_map = function() {
+    this.gradient_map = Array(this.layer.length-2);
+    for (l1=0;l1<this.layer.length-2;l1++) {
+      for (n1=0;n1<this.layer[l1].neuron.length;n1++) {
+        
+        this.layer[l1+1].neuron[n1].gradient = 
+      }
+    }
+
+  }
+
   this.get_gradient = function(location) {
     
   }
@@ -407,4 +443,8 @@ function indexOfMax(arr) {
   }
 
   return maxIndex;
+}
+
+function sigmoid(x) {
+  return (1 / (1 + Math.E ** -x))
 }
