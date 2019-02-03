@@ -17,11 +17,11 @@ my_features['x'] = pd.Series([float(x)])
 my_features['b'] = pd.Series([float(b)])
 
 targets = pd.DataFrame()
-targets['target'] = pd.Series(float(y))
+targets['target'] = pd.Series([float(y)])
 
 def my_input_fn():
     features = {key:np.array(value) for key,value in dict(my_features).items()}
-    ds = Dataset.from_tensor_slices((features,targets['target'])).batch(1).repeat()
+    ds = Dataset.from_tensor_slices((features,targets['target'])).batch(1)
     features, labels = ds.make_one_shot_iterator().get_next()
     return features, labels
 
@@ -45,13 +45,11 @@ def train_model(
             input_fn=lambda:my_input_fn(),
             steps=1
         )
-        print('check point:1')
         predictions = linear_regressor.predict(input_fn=lambda:my_input_fn())
         predictions = np.array([item['predictions'][0] for item in predictions])
-        print('check point:2')
-        root_mean_squared_error = math.sqrt(
-        metrics.mean_squared_error(predictions, targets))
+        error = targets['target'] - predictions
 
-        print("  period %02d : %0.2f" % (steps, root_mean_squared_error))
+        print("step: ", i+1, '   ',error)
+    print('x: ',predictions)
 
-train_model(0.00001,10)
+train_model(0.05,10)
