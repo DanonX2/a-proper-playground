@@ -1,138 +1,77 @@
-#load libraries
-from __future__ import print_function
-import tensorflow as tf
-import math
-from matplotlib import cm
-from matplotlib import gridspec
-from matplotlib import pyplot as plt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
 import numpy as np
-import pandas as pd
-from sklearn import metrics
-from tensorflow.python.data import Dataset
-import os
+import gym
+from collections import deque
+import random
+env = gym.make('MountainCar-v0')
 
-#config setup
-tf.logging.set_verbosity(tf.logging.FATAL)
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-pd.options.display.max_rows = 10
-pd.options.display.float_format = '{:.1f}'.format
+model = Sequential()
+model.add(Dense(20, activation='relu'))
+model.add(Flatten())
+model.add(Dense(18, activation='relu'))
+model.add(Dense(10, activation='relu'))
+model.add(Dense(env.action_space.n, activation='linear'))
 
-#load data from cvs to pandas dataframe
-cvs = "https://download.mlcc.google.com/mledu-datasets/california_housing_train.csv"
-california_housing_dataframe = pd.read_csv(cvs, sep=",")
+model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 
-#randomize the data + change unit
-california_housing_dataframe = california_housing_dataframe.reindex(
-    np.random.permutation(california_housing_dataframe.index))
-california_housing_dataframe["median_house_value"] /= 1000.0    
+D = deque()
 
-def my_input_fn(features, targets, batch_size=1, shuffle=True, num_epochs=None):
-    #convert padas data into dic of np arrays
-    features = {key:np.array(value) for key,value in dict(features).items()}
-    
-    #construct a dataset, and configure batching/repeating
-    ds = Dataset.from_tensor_slices((features, targets))
-    ds = ds.batch(batch_size).repeat(num_epochs)
+observetime = 500
+epsilon = 0.7
+gamma = 0.9
+mb_size = 50
 
-    #Shuffle if specified
-    if shuffle:
-        ds = ds.shuffle(buffer_size=10000)
-    
-    #return next batch of data
-    features, labels = ds.make_one_shot_iterator().get_next()
-    return features, labels
+observation = env.reset()
+obs = np.expand_dims(observation, axis=0)
 
-def train_model(learning_rate, steps, batch_size=1, input_feature="total_rooms"):
-  
-  periods = 10
-  steps_per_period = steps / periods
+state = np.stack((obs, obs), axis=1)
+done = False
 
-  my_feature = input_feature
-  my_feature_data = california_housing_dataframe[[my_feature]]
-  my_label = "median_house_value"
-  targets = california_housing_dataframe[my_label]
+for t in range(observetime):
+    if np.random.rand() <= epsilon:
+        action = np.random.randint(0, env.action_space.n, size=1)[0]
+    else:
+        Q = model.predict(state)
+        action = np.argmax(Q)
+    observation_new, reward, done, info = env.step(action)
+    obs_new = np.expand_dims(observation_new, axis=0)
+    state_new = np.append(np.expand_dims(obs_new, axis=0), state[:, :1, :], axis=1)
+    D.append((state, action, reward, state_new, done))
+    state = state_new
+    if done:
+        env.reset()
+        obs = np.expand_dims(observation, axis=0)
+        state = np.stack((obs, obs), axis=1)
+print('Observing Finished')
 
-  # Create feature columns.
-  feature_columns = [tf.feature_column.numeric_column(my_feature)]
-  
-  # Create input functions.
-  training_input_fn = lambda:my_input_fn(my_feature_data, targets, batch_size=batch_size)
-  prediction_input_fn = lambda: my_input_fn(my_feature_data, targets, num_epochs=1, shuffle=False)
-  
-  # Create a linear regressor object.
-  my_optimizer = tf.train.GradientDescentOptimizer(learning_rate=learning_rate)
-  my_optimizer = tf.contrib.estimator.clip_gradients_by_norm(my_optimizer, 5.0)
-  linear_regressor = tf.estimator.LinearRegressor(
-      feature_columns=feature_columns,
-      optimizer=my_optimizer
-  )
 
-  # Set up to plot the state of our model's line each period.
-  plt.figure(figsize=(15, 6))
-  plt.subplot(1, 2, 1)
-  plt.title("Learned Line by Period")
-  plt.ylabel(my_label)
-  plt.xlabel(my_feature)
-  sample = california_housing_dataframe.sample(n=300)
-  plt.scatter(sample[my_feature], sample[my_label])
-  colors = [cm.coolwarm(x) for x in np.linspace(-1, 1, periods)]
+for i in range(int(input())):
+    minibatch = random.sample(D, mb_size)
 
-  # Train the model, but do so inside a loop so that we can periodically assess
-  # loss metrics.
-  print("Training model...")
-  print("RMSE (on training data):")
-  root_mean_squared_errors = []
-  for period in range (0, periods):
-    # Train the model, starting from the prior state.
-    linear_regressor.train(
-        input_fn=training_input_fn,
-        steps=steps_per_period
-    )
-    # Take a break and compute predictions.
-    predictions = linear_regressor.predict(input_fn=prediction_input_fn)
-    predictions = np.array([item['predictions'][0] for item in predictions])
-    
-    # Compute loss.
-    root_mean_squared_error = math.sqrt(
-        metrics.mean_squared_error(predictions, targets))
-    # Occasionally print the current loss.
-    print("  period %02d : %0.2f" % (period, root_mean_squared_error))
-    # Add the loss metrics from this period to our list.
-    root_mean_squared_errors.append(root_mean_squared_error)
-    # Finally, track the weights and biases over time.
-    # Apply some math to ensure that the data and line are plotted neatly.
-    y_extents = np.array([0, sample[my_label].max()])
-    
-    weight = linear_regressor.get_variable_value('linear/linear_model/%s/weights' % input_feature)[0]
-    bias = linear_regressor.get_variable_value('linear/linear_model/bias_weights')
+    inputs_shape = (mb_size,) + state.shape[1:]
+    inputs = np.zeros(inputs_shape)
+    targets = np.zeros((mb_size, env.action_space.n))
 
-    x_extents = (y_extents - bias) / weight
-    x_extents = np.maximum(np.minimum(x_extents,
-                                      sample[my_feature].max()),
-                           sample[my_feature].min())
-    y_extents = weight * x_extents + bias
-    plt.plot(x_extents, y_extents, color=colors[period]) 
-  print("Model training finished.")
+    for i in range(0, mb_size):
+        state = minibatch[i][0]
+        action = minibatch[i][1]
+        reward = minibatch[i][2]
+        state_new = minibatch[i][3]
+        done = minibatch[i][4]
 
-  # Output a graph of loss metrics over periods.
-  plt.subplot(1, 2, 2)
-  plt.ylabel('RMSE')
-  plt.xlabel('Periods')
-  plt.title("Root Mean Squared Error vs. Periods")
-  plt.tight_layout()
-  plt.plot(root_mean_squared_errors)
-  plt.show()
+    observation = env.reset()
+    obs = np.expand_dims(observation, axis=0)
+    state = np.stack((obs, obs), axis=1)
+    done = False
+    tot_reward = 0.0
 
-  # Output a table with calibration data.
-  calibration_data = pd.DataFrame()
-  calibration_data["predictions"] = pd.Series(predictions)
-  calibration_data["targets"] = pd.Series(targets)
-  print(calibration_data.describe())
-
-  print("Final RMSE (on training data): %0.2f" % root_mean_squared_error)
-
-train_model(
-    learning_rate = 0.0001,
-    steps = 100,
-    batch_size=5
-)
+    while not done:
+        env.render()
+        Q = model.predict(state)        
+        action = np.argmax(Q)         
+        observation, reward, done, info = env.step(action)
+        obs = np.expand_dims(observation, axis=0)
+        state = np.append(np.expand_dims(obs, axis=0), state[:, :1, :], axis=1)    
+        tot_reward += reward
+    print('Game ended! Total reward: {}'.format(reward))
