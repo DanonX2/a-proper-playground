@@ -14,7 +14,10 @@ hidden_feature = np.random.random((data_size,1)) * 100
 target = feature*0.2 + hidden_feature
 
 old_model = tf.keras.Sequential()
-old_model.add(layers.Dense(64, activation='relu'))
+old_model.add(layers.Dense(3, activation='relu'))
+old_model.add(layers.Dense(8, activation='relu'))
+old_model.add(layers.Dense(9, activation='relu'))
+old_model.add(layers.Dense(3, activation='relu'))
 old_model.add(layers.Dense(1, activation='linear'))
 
 old_model.compile(
