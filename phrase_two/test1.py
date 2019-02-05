@@ -11,18 +11,17 @@ data_size = 10
 feature = np.random.random((data_size,1))
 hidden_feature = np.random.random((data_size,1))
 
-#target = feature*0.2 + hidden_feature
-target = feature*feature
+target = feature*0.2 + hidden_feature
+#target = feature*feature
 
 old_model = tf.keras.Sequential()
 old_model.add(layers.Dense(50, activation='relu',kernel_initializer='random_uniform',bias_initializer='random_uniform'))
-old_model.add(layers.Dense(30, activation='relu',kernel_initializer='random_uniform',bias_initializer='random_uniform'))
 old_model.add(layers.Dense(1, activation='linear',kernel_initializer='random_uniform',bias_initializer='random_uniform'))
 
 epochs = 5000
-lr = 0.001
+lr = 0.0001
 decay_rate = lr*2 / epochs
-momentum = 0.8
+momentum = 0.5
 
 
 optimizer = tf.keras.optimizers.SGD(lr=lr,decay=decay_rate,momentum=momentum)
